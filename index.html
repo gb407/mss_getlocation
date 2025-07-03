@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Select Location on Map</title>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <style>
+        #map {
+            height: 400px; /* Adjust height as needed */
+            width: 100%;
+            border: 1px solid #ebcdcd;
+        }
+        body {
+            font-family: sans-serif;
+            margin: 0;
+            padding: 20px;
+            text-align: center;
+            background-color: #f4f4f4;
+        }
+        .instructions {
+            margin-bottom: 15px;
+            color: #333;
+        }
+        .selected-location {
+            margin-top: 20px;
+            padding: 10px;
+            border: 1px dashed #007bff;
+            background-color: #eaf5ff;
+            color: #007bff;
+            display: none; /* Hidden until a location is selected */
+            font-weight: bold;
+        }
+        button {
+            margin-top: 20px;
+            padding: 10px 20px;
+            background-color: #007bff;
+            color: white;
+            border: none;
+            border-radius: 5px;
+            cursor: pointer;
+            font-size: 16px;
+        }
+        button:hover {
+            background-color: #0056b3;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="instructions">
+        <h3>Indica la ubicación de tu reclamo</h3>
+        <p>Haz clic en el mapa para seleccionar la calle o lugar exacto de tu queja.</p>
+    </div>
+
+    <div id="map"></div>
+
+    <div class="selected-location" id="selectedLocationDisplay">
+        Ubicación seleccionada: <span id="locationText"></span>
+    </div>
+
+    <button id="submitLocationButton" style="display: none;">Continuar con el Reclamo</button>
+
+    <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
+    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
+    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
+    <script>
+        // ** IMPORTANT: Replace with your actual Tally Form URL **
+        const TALLY_FORM_URL = "https://tally.so/r/3qq9J8"; // e.g., "https://tally.so/r/nPA50m"
+
+        const initialLat = -31.6238; // Approximate center of San Salvador, Entre Ríos
+        const initialLon = -58.50499;
+        const initialZoom = 14;
+
+        const map = L.map('map').setView([initialLat, initialLon], initialZoom);
+
+        L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+            attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+        }).addTo(map);
+
+        let marker; // To store the single marker
+
+        const selectedLocationDisplay = document.getElementById('selectedLocationDisplay');
+        const locationText = document.getElementById('locationText');
+        const submitLocationButton = document.getElementById('submitLocationButton');
+
+        let selectedLat = '';
+        let selectedLon = '';
+        let selectedAddress = '';
+
+        map.on('click', function(e) {
+            const lat = e.latlng.lat;
+            const lon = e.latlng.lng;
+
+            // Remove existing marker if any
+            if (marker) {
+                map.removeLayer(marker);
+            }
+
+            // Add new marker
+            marker = L.marker([lat, lon]).addTo(map)
+                .bindPopup("Ubicación seleccionada").openPopup();
+
+            selectedLat = lat.toFixed(6); // Format for precision
+            selectedLon = lon.toFixed(6);
+
+            // Reverse Geocoding: Get street name from coordinates (using OpenStreetMap Nominatim)
+            // This is asynchronous, so update the display and button after getting the address
+            L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
+                if (results[0]) {
+                    selectedAddress = results[0].name || results[0].properties.address.road || 'Dirección no disponible';
+                    locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
+                } else {
+                    selectedAddress = 'Dirección no encontrada';
+                    locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
+                }
+                selectedLocationDisplay.style.display = 'block'; // Show the display div
+                submitLocationButton.style.display = 'block';   // Show the button
+            });
+        });
+
+        submitLocationButton.addEventListener('click', function() {
+            if (selectedLat && selectedLon) {
+                // Construct the Tally Form URL with hidden field parameters
+                // Ensure hidden field names in Tally match these parameter names
+                const redirectUrl = `${TALLY_FORM_URL}?latitud=${selectedLat}&longitud=${selectedLon}&calle=${encodeURIComponent(selectedAddress)}`;
+
+                // Redirect the user to the Tally Form
+                window.location.href = redirectUrl;
+                // If you want to open in a new tab: window.open(redirectUrl, '_blank');
+            } else {
+                alert("Por favor, selecciona una ubicación en el mapa primero.");
+            }
+        });
+
+        // This part listens for messages from the parent window (Tally's iframe)
+        // It's useful for debugging or if you wanted to pass data *from* Tally *to* your map,
+        // but for this specific flow, the primary data flow is map -> Tally.
+        // window.addEventListener('message', function(event) {
+        //     if (event.origin === 'https://tally.so') { // Ensure message is from Tally
+        //         console.log('Message from Tally:', event.data);
+        //         // You could potentially handle data coming from Tally here if needed
+        //     }
+        // });
+
+    </script>
+</body>
+</html>
