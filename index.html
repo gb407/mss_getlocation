@@ -123,27 +123,27 @@
                 return; // Stop execution here
             }
 
-            L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
-                console.log("Geocoder callback executed."); // NEW LOG 2
-                console.log("Geocoder Results:", results); // NEW LOG 3 - **VERY IMPORTANT**
+            L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
+                console.log("Geocoder callback executed.");
+                console.log("Geocoder Results (from JS variable):", results); // <-- THIS IS THE MOST IMPORTANT LOG NOW
+                console.log("Type of Geocoder Results:", typeof results, "Is Array:", Array.isArray(results)); // <-- NEW HELPFUL LOG
 
                 if (results && results.length > 0) {
-                    console.log("Results found. Processing address."); // NEW LOG 4
+                    console.log("Results found. Processing address.");
                     selectedAddress = results[0].name || results[0].properties.address.road || 'Dirección no disponible';
                     locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
                 } else {
-                    console.log("No results found or empty results array from Nominatim."); // NEW LOG 5
+                    console.log("No results found or empty results array from Nominatim.");
                     selectedAddress = 'Dirección no encontrada';
                     locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
                 }
 
-                console.log("Updating display elements to block."); // NEW LOG 6
-                selectedLocationDisplay.style.display = 'block'; // Make sure it's visible now
-                submitLocationButton.style.display = 'block';   // Make the button visible now
-                console.log("Display elements updated."); // NEW LOG 7
-
+                console.log("Updating display elements to block.");
+                selectedLocationDisplay.style.display = 'block';
+                submitLocationButton.style.display = 'block';
+                console.log("Display elements updated.");
             });
-            // --- END CRITICAL DEBUGGING SECTION ---
+
         });
 
         submitLocationButton.addEventListener('click', function() {
