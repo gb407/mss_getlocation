@@ -1,16 +1,21 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Select Location on Map</title>
+    <title>Elegir</title>
     <link rel="stylesheet" href="https://unpkg.com/leaflet/dist/leaflet.css" />
+    <script src="https://cdn.maptiler.com/maptiler-geocoding-control/v2.1.7/leaflet.umd.js"></script>
+    <link href="https://cdn.maptiler.com/maptiler-geocoding-control/v2.1.7/style.css" rel="stylesheet">
     <style>
         #map {
-            height: 400px; /* Crucial: map container needs height */
+            height: 400px;
+            /* Crucial: map container needs height */
             width: 100%;
             border: 1px solid #ccc;
         }
+
         body {
             font-family: sans-serif;
             margin: 0;
@@ -18,19 +23,23 @@
             text-align: center;
             background-color: #f4f4f4;
         }
+
         .instructions {
             margin-bottom: 15px;
             color: #333;
         }
+
         .selected-location {
             margin-top: 20px;
             padding: 10px;
             border: 1px dashed #007bff;
             background-color: #eaf5ff;
             color: #007bff;
-            display: none; /* Hidden until a location is selected */
+            display: none;
+            /* Hidden until a location is selected */
             font-weight: bold;
         }
+
         button {
             margin-top: 20px;
             padding: 10px 20px;
@@ -41,11 +50,13 @@
             cursor: pointer;
             font-size: 16px;
         }
+
         button:hover {
             background-color: #0056b3;
         }
     </style>
 </head>
+
 <body>
 
     <div class="instructions">
@@ -53,18 +64,18 @@
         <p>Haz clic en el mapa para seleccionar la calle o lugar exacto de tu queja.</p>
     </div>
 
-    <div id="map"></div> <div class="selected-location" id="selectedLocationDisplay">
+    <div id="map"></div>
+    <div class="selected-location" id="selectedLocationDisplay">
         Ubicación seleccionada: <span id="locationText"></span>
     </div>
 
     <button id="submitLocationButton" style="display: none;">Continuar con el Reclamo</button>
 
     <script src="https://unpkg.com/leaflet/dist/leaflet.js"></script>
-    <script src="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.js"></script>
-    <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
+
 
     <script>
-        const TALLY_FORM_URL = "YOUR_TALLY_FORM_URL_HERE"; // IMPORTANT: REPLACE THIS!
+        const TALLY_FORM_URL = "https://tally.so/r/nPNVWb"; // IMPORTANT: REPLACE THIS!
 
         const initialLat = -31.6213; // Approx center San Salvador, Entre Ríos
         const initialLon = -58.5061;
@@ -91,7 +102,7 @@
         let selectedAddress = '';
 
         console.log("Attaching map click listener...");
-        map.on('click', function(e) {
+        map.on('click', function (e) {
             console.log("Map clicked at:", e.latlng); // This line is currently the last one you see
 
             const lat = e.latlng.lat;
@@ -111,45 +122,66 @@
             selectedLocationDisplay.style.display = 'block';
             submitLocationButton.style.display = 'none'; // Ensure button is hidden initially
 
-            // --- CRITICAL DEBUGGING SECTION ---
-            console.log("Attempting reverse geocoding..."); // NEW LOG 1
-            if (typeof L.Control.Geocoder === 'undefined' || typeof L.Control.Geocoder.nominatim === 'undefined') {
-                console.error("Error: L.Control.Geocoder or L.Control.Geocoder.nominatim is undefined. Geocoder library likely not loaded correctly."); // NEW LOG 1a
-                // If geocoder isn't available, make the button appear anyway so user isn't stuck
-                selectedAddress = 'Error al cargar geocodificador. Ubicación: Lat: ${selectedLat}, Lon: ${selectedLon}';
-                locationText.textContent = selectedAddress;
-                selectedLocationDisplay.style.display = 'block';
-                submitLocationButton.style.display = 'block';
-                return; // Stop execution here
-            }
+            // // --- CRITICAL DEBUGGING SECTION ---
+            // console.log("Attempting reverse geocoding..."); // NEW LOG 1
+            // if (typeof L.Control.Geocoder === 'undefined' || typeof L.Control.Geocoder.nominatim === 'undefined') {
+            //     console.error("Error: L.Control.Geocoder or L.Control.Geocoder.nominatim is undefined. Geocoder library likely not loaded correctly."); // NEW LOG 1a
+            //     // If geocoder isn't available, make the button appear anyway so user isn't stuck
+            //     selectedAddress = 'Error al cargar geocodificador. Ubicación: Lat: ${selectedLat}, Lon: ${selectedLon}';
+            //     locationText.textContent = selectedAddress;
+            //     selectedLocationDisplay.style.display = 'block';
+            //     submitLocationButton.style.display = 'block';
+            //     return; // Stop execution here
+            // }
+            var requestOptions = {
+                method: 'GET',
+            };
 
-            L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
-                console.log("Geocoder callback executed.");
-                console.log("Geocoder Results (from JS variable):", results); // <-- THIS IS THE MOST IMPORTANT LOG NOW
-                console.log("Type of Geocoder Results:", typeof results, "Is Array:", Array.isArray(results)); // <-- NEW HELPFUL LOG
-                results = JSON.parse(results)
-                if (results) {
-                    console.log("Results found. Processing address.");
-                    selectedAddress = results.name || results.properties.address.road || 'Dirección no disponible';
+            async function getAddress() {
+                try {
+                    const response = await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${selectedLat}&lon=${selectedLon}&apiKey=da6c6e48f8d1453c9bc1d2800809ad14`, requestOptions);
+                    const result = await response.json();
+                    console.log(result);
+                    street = result.features[0].properties.street
+                    number = result.features[0].properties.housenumber || ''
+
+                    selectedAddress = street + " " + number;
+                    console.log("Selected Address (inside async function):", selectedAddress);
+
                     locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
-                } else {
-                    console.log("No results found or empty results array from Nominatim.");
-                    selectedAddress = 'Dirección no encontrada';
-                    locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
-                }
+                    submitLocationButton.style.display = 'block';
 
-                console.log("Updating display elements to block.");
-                selectedLocationDisplay.style.display = 'block';
-                submitLocationButton.style.display = 'block';
-                console.log("Display elements updated.");
-            });
+                } catch (error) {
+                    console.log('error', error);
+                }
+            }
+            getAddress()
+
+            // L.Control.Geocoder.Nominatim.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
+            //     console.log("Geocoder callback executed.");
+            //     console.log("Geocoder Results (from JS variable):", results); // <-- THIS IS THE MOST IMPORTANT LOG NOW
+
+            //     if (results) {
+            //         console.log("Results found. Processing address.");
+            //         selectedAddress = results.name || results.properties.address.road || 'Dirección no disponible';
+            //         e {
+            //         console.log("No results found or empty results array from Nominatim.");
+            //         selectedAddress = 'Dirección no encontrada';
+            //         locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
+            //     }
+
+            //     console.log("Updating display elements to block.");
+            //     selectedLocationDisplay.style.display = 'block';
+            //     
+            //     console.log("Display elements updated.");
+            // });
 
         });
 
-        submitLocationButton.addEventListener('click', function() {
+        submitLocationButton.addEventListener('click', function () {
             console.log("Submit button clicked.");
             if (selectedLat && selectedLon) {
-                const redirectUrl = `${TALLY_FORM_URL}?latitude=${selectedLat}&longitude=${selectedLon}&street_address=${encodeURIComponent(selectedAddress)}`;
+                const redirectUrl = `${TALLY_FORM_URL}?calle=${selectedAddress}}`;
                 console.log("Redirecting to:", redirectUrl); // NEW LOG 8
                 window.location.href = redirectUrl;
             } else {
@@ -170,4 +202,5 @@
 
     </script>
 </body>
+
 </html>
