@@ -64,32 +64,23 @@
     <link rel="stylesheet" href="https://unpkg.com/leaflet-control-geocoder/dist/Control.Geocoder.css" />
 
     <script>
-        // ** IMPORTANT: Replace with your actual Tally Form URL **
-        const TALLY_FORM_URL = "YOUR_TALLY_FORM_URL_HERE"; // e.g., "https://tally.so/r/nPA50m"
+        const TALLY_FORM_URL = "YOUR_TALLY_FORM_URL_HERE"; // IMPORTANT: REPLACE THIS!
 
-        // Correct initial coordinates for San Salvador, Entre Ríos, Argentina (July 2025)
-        const initialLat = -31.6213;
+        const initialLat = -31.6213; // Approx center San Salvador, Entre Ríos
         const initialLon = -58.5061;
         const initialZoom = 14;
 
-        // **DEBUGGING STEP 1:** Check if map initialization happens
         console.log("Attempting to initialize map...");
 
-        // Initialize the map
         const map = L.map('map').setView([initialLat, initialLon], initialZoom);
+        console.log("Map object:", map);
 
-        // **DEBUGGING STEP 2:** Check if map object is created
-        console.log("Map object:", map); // Should not be undefined
-
-        // Add the OpenStreetMap tile layer
         L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
-
-        // **DEBUGGING STEP 3:** Check if tile layer was added
         console.log("Tile layer added.");
 
-        let marker; // To store the single marker
+        let marker;
 
         const selectedLocationDisplay = document.getElementById('selectedLocationDisplay');
         const locationText = document.getElementById('locationText');
@@ -99,58 +90,74 @@
         let selectedLon = '';
         let selectedAddress = '';
 
-        // **DEBUGGING STEP 4:** Check if event listener is attached
         console.log("Attaching map click listener...");
         map.on('click', function(e) {
-            // **DEBUGGING STEP 5:** Check if click handler executes
-            console.log("Map clicked at:", e.latlng);
+            console.log("Map clicked at:", e.latlng); // This line is currently the last one you see
 
             const lat = e.latlng.lat;
             const lon = e.latlng.lng;
 
-            // Remove existing marker if any
             if (marker) {
                 map.removeLayer(marker);
             }
-
-            // Add new marker
             marker = L.marker([lat, lon]).addTo(map)
                 .bindPopup("Ubicación seleccionada").openPopup();
 
             selectedLat = lat.toFixed(6);
             selectedLon = lon.toFixed(6);
 
+            // Display temporary message and show the display div
             locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Buscando dirección...)`;
             selectedLocationDisplay.style.display = 'block';
-            submitLocationButton.style.display = 'none';
+            submitLocationButton.style.display = 'none'; // Ensure button is hidden initially
 
-            // Reverse Geocoding
+            // --- CRITICAL DEBUGGING SECTION ---
+            console.log("Attempting reverse geocoding..."); // NEW LOG 1
+            if (typeof L.Control.Geocoder === 'undefined' || typeof L.Control.Geocoder.nominatim === 'undefined') {
+                console.error("Error: L.Control.Geocoder or L.Control.Geocoder.nominatim is undefined. Geocoder library likely not loaded correctly."); // NEW LOG 1a
+                // If geocoder isn't available, make the button appear anyway so user isn't stuck
+                selectedAddress = 'Error al cargar geocodificador. Ubicación: Lat: ${selectedLat}, Lon: ${selectedLon}';
+                locationText.textContent = selectedAddress;
+                selectedLocationDisplay.style.display = 'block';
+                submitLocationButton.style.display = 'block';
+                return; // Stop execution here
+            }
+
             L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
-                console.log("Geocoder Results:", results);
+                console.log("Geocoder callback executed."); // NEW LOG 2
+                console.log("Geocoder Results:", results); // NEW LOG 3 - **VERY IMPORTANT**
 
                 if (results && results.length > 0) {
+                    console.log("Results found. Processing address."); // NEW LOG 4
                     selectedAddress = results[0].name || results[0].properties.address.road || 'Dirección no disponible';
                     locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
                 } else {
+                    console.log("No results found or empty results array from Nominatim."); // NEW LOG 5
                     selectedAddress = 'Dirección no encontrada';
                     locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
                 }
-                selectedLocationDisplay.style.display = 'block';
-                submitLocationButton.style.display = 'block';
+
+                console.log("Updating display elements to block."); // NEW LOG 6
+                selectedLocationDisplay.style.display = 'block'; // Make sure it's visible now
+                submitLocationButton.style.display = 'block';   // Make the button visible now
+                console.log("Display elements updated."); // NEW LOG 7
+
             });
+            // --- END CRITICAL DEBUGGING SECTION ---
         });
 
         submitLocationButton.addEventListener('click', function() {
             console.log("Submit button clicked.");
             if (selectedLat && selectedLon) {
                 const redirectUrl = `${TALLY_FORM_URL}?latitude=${selectedLat}&longitude=${selectedLon}&street_address=${encodeURIComponent(selectedAddress)}`;
+                console.log("Redirecting to:", redirectUrl); // NEW LOG 8
                 window.location.href = redirectUrl;
             } else {
                 alert("Por favor, selecciona una ubicación en el mapa primero.");
             }
         });
 
-        // Initial check for HTML elements
+        // Initial checks for HTML elements
         if (!document.getElementById('map')) {
             console.error("Error: 'map' div not found in HTML!");
         }
