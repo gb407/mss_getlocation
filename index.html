@@ -79,6 +79,7 @@
             attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
         }).addTo(map);
 
+    
         let marker; // To store the single marker
 
         const selectedLocationDisplay = document.getElementById('selectedLocationDisplay');
@@ -89,36 +90,39 @@
         let selectedLon = '';
         let selectedAddress = '';
 
-        map.on('click', function(e) {
-            const lat = e.latlng.lat;
-            const lon = e.latlng.lng;
+    map.on('click', function (e) {
+        const lat = e.latlng.lat;
+        const lon = e.latlng.lng;
 
-            // Remove existing marker if any
-            if (marker) {
-                map.removeLayer(marker);
+        // Remove existing marker if any
+        if (marker) {
+            map.removeLayer(marker);
+        }
+
+        // Add new marker
+        marker = L.marker([lat, lon]).addTo(map)
+            .bindPopup("Ubicación seleccionada").openPopup();
+
+        selectedLat = lat.toFixed(6);
+        selectedLon = lon.toFixed(6);
+        locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Buscando dirección...)`; // Temporary message
+        selectedLocationDisplay.style.display = 'block'; // Make sure display div is visible even before address
+        console.log("AAA")
+        L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
+            
+            if (results && results.length > 0) { // More robust check for results
+                selectedAddress = results[0].name || results[0].properties.address.road || 'Dirección no disponible';
+                locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
+                submitLocationButton.style.display = 'block';
+
+            } else {
+                selectedAddress = 'Dirección no encontrada';
+                locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
+                submitLocationButton.style.display = 'block'; // Show button even if address not found
+          
             }
-
-            // Add new marker
-            marker = L.marker([lat, lon]).addTo(map)
-                .bindPopup("Ubicación seleccionada").openPopup();
-
-            selectedLat = lat.toFixed(6); // Format for precision
-            selectedLon = lon.toFixed(6);
-
-            // Reverse Geocoding: Get street name from coordinates (using OpenStreetMap Nominatim)
-            // This is asynchronous, so update the display and button after getting the address
-            L.Control.Geocoder.nominatim().reverse(e.latlng, map.options.crs.scale(map.getZoom()), function(results) {
-                if (results[0]) {
-                    selectedAddress = results[0].name || results[0].properties.address.road || 'Dirección no disponible';
-                    locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
-                } else {
-                    selectedAddress = 'Dirección no encontrada';
-                    locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
-                }
-                selectedLocationDisplay.style.display = 'block'; // Show the display div
-                submitLocationButton.style.display = 'block';   // Show the button
-            });
         });
+    });
 
         submitLocationButton.addEventListener('click', function() {
             if (selectedLat && selectedLon) {
@@ -133,6 +137,7 @@
                 alert("Por favor, selecciona una ubicación en el mapa primero.");
             }
         });
+        
 
         // This part listens for messages from the parent window (Tally's iframe)
         // It's useful for debugging or if you wanted to pass data *from* Tally *to* your map,
