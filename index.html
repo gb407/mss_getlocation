@@ -127,10 +127,10 @@
                 console.log("Geocoder callback executed.");
                 console.log("Geocoder Results (from JS variable):", results); // <-- THIS IS THE MOST IMPORTANT LOG NOW
                 console.log("Type of Geocoder Results:", typeof results, "Is Array:", Array.isArray(results)); // <-- NEW HELPFUL LOG
-
-                if (results && results.length > 0) {
+                results = JSON.parse(results)
+                if (results) {
                     console.log("Results found. Processing address.");
-                    selectedAddress = results[0].name || results[0].properties.address.road || 'Dirección no disponible';
+                    selectedAddress = results.name || results.properties.address.road || 'Dirección no disponible';
                     locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
                 } else {
                     console.log("No results found or empty results array from Nominatim.");
