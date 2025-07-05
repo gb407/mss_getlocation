@@ -201,12 +201,13 @@
             }
             getAddress()
         });
-        
+
         submitLocationButton.addEventListener('click', function () {
             console.log("Submit button clicked.");
             if (selectedLat && selectedLon) {
                 const redirectUrl = `${TALLY_FORM_URL}?calle=${selectedAddress}&lat=${selectedLat}&lon=${selectedLon}`;
                 console.log("Redirecting to:", redirectUrl); // NEW LOG 8
+                window.parent.removeEventListener("beforeunload")
                 window.parent.location.href = redirectUrl;
             } else {
                 alert("Por favor, selecciona una ubicación en el mapa primero.");
