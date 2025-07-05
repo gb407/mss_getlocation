@@ -225,7 +225,7 @@
             if (selectedLat && selectedLon) {
                 const redirectUrl = `${TALLY_FORM_URL}?calle=${selectedAddress}&lat=${selectedLat}&lon=${selectedLon}`;
                 console.log("Redirecting to:", redirectUrl); // NEW LOG 8
-                window.removeEventListener("beforeunload")
+                window.onbeforeunload = null;
                 window.parent.location.href = redirectUrl;
             } else {
                 alert("Por favor, selecciona una ubicación en el mapa primero.");
