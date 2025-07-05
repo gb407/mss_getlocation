@@ -38,12 +38,24 @@
             background-color: rgb(110, 197, 110);
             margin: 10px;
             padding: 7px 0px;
-            width: min-content;
             border-radius: 20px;
             display: none;
-            width: 0;
-            transition-behavior: allow-discrete;
-            transition: width 0.3s ease
+            animation: show 0.3s ease
+        }
+
+        .confirmation.show {
+            display: block;
+        }
+
+        @keyframes show {
+            0% {
+                height: 0;
+                color: transparent;
+            }
+            100% {
+                height: 20px;
+                color: black;
+            }
         }
 
         .instructions {
@@ -83,8 +95,8 @@
 <body>
 
     <div class="instructions">
-        <h3>Indica la ubicación de tu reclamo</h3>
-        <p>Haz clic en el mapa para seleccionar la calle o lugar exacto de tu queja.</p>
+        <h3>Indicá la ubicación de tu reclamo</h3>
+        <p>Hacé clic en el mapa para seleccionar la calle o lugar exacto de tu queja.</p>
     </div>
 
     <div class="confirmation" id="confirmationText">
@@ -167,54 +179,35 @@
 
             async function getAddress() {
                 try {
+                    confirmationText.classList.remove("show");
                     const response = await fetch(`https://api.geoapify.com/v1/geocode/reverse?lat=${selectedLat}&lon=${selectedLon}&apiKey=da6c6e48f8d1453c9bc1d2800809ad14`, requestOptions);
                     const result = await response.json();
                     console.log(result);
                     street = result.features[0].properties.street;
                     number = result.features[0].properties.housenumber || ''
                     name = result.features[0].properties.name || ''
-                    if (name === street) { name = '' }
+                    if (name === street) { name = 'Calle' }
                     selectedAddress = `${name} ${street} ${number}`;
                     console.log("Selected Address (inside async function):", selectedAddress);
 
-                    locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (${selectedAddress})`;
+                    locationText.textContent = `${selectedAddress}`;
                     submitLocationButton.style.display = 'block';
-                    confirmationText.style.display = 'block';
-                    confirmationText.style.width = 'auto';
+                    confirmationText.classList.add("show");
+                    
                     
                 } catch (error) {
                     console.log('error', error);
                 }
             }
             getAddress()
-
-            // L.Control.Geocoder.Nominatim.reverse(e.latlng, map.options.crs.scale(map.getZoom()), function (results) {
-            //     console.log("Geocoder callback executed.");
-            //     console.log("Geocoder Results (from JS variable):", results); // <-- THIS IS THE MOST IMPORTANT LOG NOW
-
-            //     if (results) {
-            //         console.log("Results found. Processing address.");
-            //         selectedAddress = results.name || results.properties.address.road || 'Dirección no disponible';
-            //         e {
-            //         console.log("No results found or empty results array from Nominatim.");
-            //         selectedAddress = 'Dirección no encontrada';
-            //         locationText.textContent = `Lat: ${selectedLat}, Lon: ${selectedLon} (Dirección no encontrada)`;
-            //     }
-
-            //     console.log("Updating display elements to block.");
-            //     selectedLocationDisplay.style.display = 'block';
-            //     
-            //     console.log("Display elements updated.");
-            // });
-
         });
-
+        
         submitLocationButton.addEventListener('click', function () {
             console.log("Submit button clicked.");
             if (selectedLat && selectedLon) {
-                const redirectUrl = `${TALLY_FORM_URL}?calle=${selectedAddress}}`;
+                const redirectUrl = `${TALLY_FORM_URL}?calle=${selectedAddress}&lat=${selectedLat}&lon=${selectedLon}`;
                 console.log("Redirecting to:", redirectUrl); // NEW LOG 8
-                window.location.href = redirectUrl;
+                window.parent.location.href = redirectUrl;
             } else {
                 alert("Por favor, selecciona una ubicación en el mapa primero.");
             }
